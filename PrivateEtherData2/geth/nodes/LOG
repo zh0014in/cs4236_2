@@ -1,0 +1,11 @@
+=============== Oct 15, 2016 (SGT) ===============
+15:02:17.409249 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+15:02:17.411011 db@open opening
+15:02:17.419154 version@stat F·[] S·0B[] Sc·[]
+15:02:17.494553 db@janitor F·2 G·0
+15:02:17.494599 db@open done T·83.571796ms
+15:20:51.910442 memdb@flush N·42774 S·3MiB
+15:20:51.951243 memdb@flush created L0@3 N·42774 S·1MiB "n:\x00..ing,v39548":"version,v1"
+15:20:51.951319 version@stat F·[1] S·1MiB[1MiB] Sc·[0.25]
+15:20:51.952736 memdb@flush committed F·1 T·41.71212ms
+15:20:51.953570 journal@remove removed @1
