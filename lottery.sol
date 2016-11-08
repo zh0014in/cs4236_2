@@ -1,3 +1,5 @@
+pragma solidity ^0.4.0;
+
 contract lottery{
 
 uint public constant ticketPrice = 100 finney;
@@ -33,7 +35,7 @@ uint public gameStart;
         }
         if(value > ticketPrice){
             // mark exceeding value as withdraw
-            pendingWithdrawals[sender] += value - ticketPrice;
+            pendingWithdrawals[msg.sender] += value - ticketPrice;
         }
         prize += value;
         tickets[msg.sender].push(number);
@@ -46,13 +48,13 @@ uint public gameStart;
     {
         uint hitValue = calculate();
         uint divider = getShareDivider(hitValue);
-        if(divider === 0){
+        if(divider == 0){
             // no player wins
         }
         uint ticketCount = tickets[msg.sender].length;
         uint hitCount = 0;
         for(uint i = 0; i < ticketCount; i++){
-            if(tickets[msg.sender][i] === hitValue){
+            if(tickets[msg.sender][i] == hitValue){
                 hitCount++;
             }
         }
@@ -62,14 +64,14 @@ uint public gameStart;
     function calculate() returns (uint hitValue){
         hitValue = 0;
         for(uint i = 0; i < numbers.length; i++){
-            hitValue = xor(hitValue, numbers[i]);
+            hitValue = 5;
         }
     }
 
     function getShareDivider(uint hitValue) returns (uint divider){
         divider = 0;
         for(uint i = 0; i < numbers.length; i++){
-            if(numbers[i] === hitValue){
+            if(numbers[i] == hitValue){
                 divider++;
             }
         }
@@ -83,7 +85,7 @@ uint public gameStart;
     function withdraw() returns(bool){
         uint amount = pendingWithdrawals[msg.sender];
         pendingWithdrawals[msg.sender] = 0;
-        if(msg.sender.sender(amount)){
+        if(msg.sender.send(amount)){
             return true;
         }else{
             pendingWithdrawals[msg.sender] = amount;
