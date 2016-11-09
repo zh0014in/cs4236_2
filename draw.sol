@@ -1,49 +1,13 @@
-
-pragma solidity ^0.4.0;
-
-// <ORACLIZE_API>
-/*
-Copyright (c) 2015-2016 Oraclize SRL
-Copyright (c) 2016 Oraclize LTD
-
-
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-*/
-
-pragma solidity ^0.4.0;
-
 contract OraclizeI {
     address public cbAddress;
-    function query(uint _timestamp, string _datasource, string _arg) payable returns (bytes32 _id);
-    function query_withGasLimit(uint _timestamp, string _datasource, string _arg, uint _gaslimit) payable returns (bytes32 _id);
-    function query2(uint _timestamp, string _datasource, string _arg1, string _arg2) payable returns (bytes32 _id);
-    function query2_withGasLimit(uint _timestamp, string _datasource, string _arg1, string _arg2, uint _gaslimit) payable returns (bytes32 _id);
+    function query(uint _timestamp, string _datasource, string _arg) returns (bytes32 _id);
+    function query_withGasLimit(uint _timestamp, string _datasource, string _arg, uint _gaslimit) returns (bytes32 _id);
+    function query2(uint _timestamp, string _datasource, string _arg1, string _arg2) returns (bytes32 _id);
+    function query2_withGasLimit(uint _timestamp, string _datasource, string _arg1, string _arg2, uint _gaslimit) returns (bytes32 _id);
     function getPrice(string _datasource) returns (uint _dsprice);
     function getPrice(string _datasource, uint gaslimit) returns (uint _dsprice);
     function useCoupon(string _coupon);
     function setProofType(byte _proofType);
-    function setCustomGasPrice(uint _gasPrice);
 }
 contract OraclizeAddrResolverI {
     function getAddress() returns (address _addr);
@@ -65,14 +29,18 @@ contract usingOraclize {
     
     OraclizeI oraclize;
     modifier oraclizeAPI {
-        if(address(OAR)==0) oraclize_setNetwork(networkID_auto);
-        oraclize = OraclizeI(OAR.getAddress());
-        _;
+        address oraclizeAddr = OAR.getAddress();
+        if (oraclizeAddr == 0){
+            oraclize_setNetwork(networkID_auto);
+            oraclizeAddr = OAR.getAddress();
+        }
+        oraclize = OraclizeI(oraclizeAddr);
+        _
     }
     modifier coupon(string code){
         oraclize = OraclizeI(OAR.getAddress());
         oraclize.useCoupon(code);
-        _;
+        _
     }
 
     function oraclize_setNetwork(uint8 networkID) internal returns(bool){
@@ -86,10 +54,6 @@ contract usingOraclize {
         }
         if (getCodeSize(0x20e12a1f859b3feae5fb2a0a32c18f5a65555bbf)>0){
             OAR = OraclizeAddrResolverI(0x20e12a1f859b3feae5fb2a0a32c18f5a65555bbf);
-            return true;
-        }
-        if (getCodeSize(0x9a1d6e5c6c8d081ac45c6af98b74a42442afba60)>0){
-            OAR = OraclizeAddrResolverI(0x9a1d6e5c6c8d081ac45c6af98b74a42442afba60);
             return true;
         }
         return false;
@@ -140,12 +104,6 @@ contract usingOraclize {
     }
     function oraclize_setProof(byte proofP) oraclizeAPI internal {
         return oraclize.setProofType(proofP);
-    }
-    function oraclize_setCustomGasPrice(uint gasPrice) oraclizeAPI internal {
-        return oraclize.setCustomGasPrice(gasPrice);
-    }    
-    function oraclize_setConfig(bytes config) oraclizeAPI internal {
-        //return oraclize.setConfig(config);
     }
 
     function getCodeSize(address _addr) constant internal returns(uint _size) {
@@ -269,7 +227,6 @@ contract usingOraclize {
                 mint += uint(bresult[i]) - 48;
             } else if (bresult[i] == 46) decimals = true;
         }
-        if (_b > 0) mint *= 10**_b;
         return mint;
     }
     
@@ -277,137 +234,111 @@ contract usingOraclize {
 }
 // </ORACLIZE_API>
 
+contract draw is usingOraclize {
+    address owner;
+    uint public numTickets;
+    uint public drawDate;
+    uint public actualDrawDate;
+    bool public drawn;
+    uint public entryFee;
+    uint public payout;
+    uint public winningNumber;  
+    address public organiser;
+    address public nextDraw;  
+    address public previousDrawAddress;
+    bool public paidOut;
+    bytes32 oraclizeId;
+    struct Ticket {
+     uint guess;
+     address eth_address;
+    }
+    mapping(uint => Ticket) public tickets;
+    address[] public winningaddresses;
 
-contract lottery is usingOraclize{
-    address private owner;
-    uint public constant ticketPrice = 100 finney;
-    uint public constant maxNumber = 50;
-    uint public revealedDate;
-    uint public currentGameIndex = 0;
-    
-    struct ticket{
-        uint guess;
-        address playerAddress;
-    }
-    
-    struct round {
-        mapping(uint => ticket) tickets;
-        uint ticketsCount;
-        uint hitNumber;
-        bool revealed;
-        bytes32 oraclizeId;
-        uint prize;
-    }
-    round[] public rounds;
-    
-    mapping(address => uint) pendingWithdrawals;
-    
-    // modifiers
-    modifier onlyOwner() { if (owner != msg.sender) { throw; } _; }
-    
-    // events
-    event OnGameEnd(uint hitNumber);
-    event OnHitNumberGenerated(uint hitNumber);
-
-    // constructor
-    function lottery(){
-        owner = msg.sender;
-    }
-    
-    // owner call this function to start a new round
-    function newRound() onlyOwner{
-        rounds.length++;
-        currentGameIndex = rounds.length - 1;
-        rounds[currentGameIndex].ticketsCount = 0;
-        rounds[currentGameIndex].hitNumber = 0;
-        rounds[currentGameIndex].revealed = false;
-        rounds[currentGameIndex].oraclizeId = 0;
-        if(currentGameIndex >= 1){
-            // start from the second round, tranfser previous round's prize to current round if any
-            rounds[currentGameIndex].prize = rounds[currentGameIndex-1].prize;
-        }else{
-            rounds[currentGameIndex].prize = 0;
-        }
-    }
-    
-    // owner call this to end a round and send prize to winner
-    function endRound() onlyOwner{
-        if(!rounds[currentGameIndex].revealed) throw;
-        address[] winners;
-        for(uint i = 0; i < rounds[currentGameIndex].ticketsCount; i++){
-            if(rounds[currentGameIndex].tickets[i].guess == rounds[currentGameIndex].hitNumber){
-                winners.push(rounds[currentGameIndex].tickets[i].playerAddress);
-            }
-        }
-        // %10 of the pot goes to owner
-        var commission = rounds[currentGameIndex].ticketsCount * ticketPrice / 10;
-        // rest is the prize
-        rounds[currentGameIndex].prize = rounds[currentGameIndex].ticketsCount * ticketPrice - commission;
-        
-        if(winners.length > 0){
-            var share = rounds[currentGameIndex].prize / winners.length;
-            for(i = 0; i < winners.length; i++){
-                pendingWithdrawals[winners[i]] += share;
-            }
-        }
-        
-        // owner has the commision
-        pendingWithdrawals[owner] += commission;
-    }
-    
-    function buyTicket(uint number)
-    payable
-    {
-        if(number > maxNumber){
-            throw;
-        }
-        if(number <= 0){
-            throw;
-        }
-        uint value = msg.value;
-        if(value < ticketPrice){
-            throw;
-        }
-        if(value > ticketPrice){
-            // mark exceeding value as withdraw
-            pendingWithdrawals[msg.sender] += value - ticketPrice;
-        }
-        rounds[currentGameIndex].prize += value;
-        rounds[currentGameIndex].tickets[rounds[currentGameIndex].ticketsCount] = ticket(number, msg.sender);
-        rounds[currentGameIndex].ticketsCount++;
+    event Log_BuyTicket(uint _ticketid);
+    event Log_DrawDone(uint _winningNumber);
+    event Log_WinningNumberSelected(uint _winningNumber);
+ 
+    function draw(uint _offset, uint _entryFee, address _organiser, address _previousDrawAddress) {
+         owner = msg.sender;
+  	 numTickets = 0;
+   	 drawn = false;
+   	 winningNumber = 0;
+         payout = 0;
+         drawDate = now + _offset;
+         actualDrawDate = 0;
+         entryFee = _entryFee;
+         organiser= _organiser;
+         previousDrawAddress = _previousDrawAddress;
+         paidOut = false;
+         oraclizeId = 0;
     }
 
-    function reveal()
-    {
-        getRandom();
+    function getPot() constant returns (uint) {
+       return this.balance; 
     }
 
-    function getRandom(){
-        rounds[currentGameIndex].oraclizeId = oraclize_query(0, "WolframAlpha", "random number between 1 and 6");
+    function buyTicket(address _buyer, uint _guess) returns (uint ticketid) {
+      if (msg.value != entryFee) throw;
+      if (_guess > 100 || _guess < 1) throw;
+      if (drawn) throw;
+      ticketid = numTickets++;
+      tickets[ticketid] = Ticket(_guess, _buyer);
+      Log_BuyTicket(ticketid);
     }
 
+    function doDraw() {
+      if (drawn) throw;
+      if (msg.sender != owner) throw;
+      if (now < drawDate) throw; 
+      oraclizeId = oraclize_query("WolframAlpha", "random number between 1 and 100");
+     }
+
+    function transferPot(address _newContract) {
+      if (!drawn) throw;
+      if (winningNumber == 0) throw;
+      if (msg.sender != owner) throw;
+      if (paidOut) throw;
+
+      paidOut = true;
+      nextDraw = _newContract; 
+
+      for (uint i = 0; i < numTickets; ++i) {
+        if (tickets[i].guess == winningNumber) {
+          winningaddresses.push(tickets[i].eth_address); 
+        }
+      }
+      var commission = numTickets*entryFee / 10;
+      payout = this.balance - commission;
+
+      for (uint j = 0; j < winningaddresses.length; ++j) {
+        if (!winningaddresses[j].send(payout / winningaddresses.length)) throw;
+      }
+      // we need to make sure this works with rounding - does commission + payout always equal this.balance
+      if(!organiser.send(commission)) throw;
+      
+      //send remaining balance to the new draw, i.e. the rollover
+      if(!_newContract.send(this.balance)) throw;
+      Log_DrawDone(winningNumber);
+
+    }
+
+    function getPrizeValue (address _query) constant returns (uint _value) {
+      if (!drawn) throw;
+      _value =0;
+      for (uint i = 0; i < winningaddresses.length; ++i) {
+        if (winningaddresses[i] == _query) {
+          _value += payout / winningaddresses.length;        
+        }
+      }
+    }
+    
     function __callback(bytes32 _id, string _result) {
-       if (rounds[currentGameIndex].revealed) throw;
-       if (rounds[currentGameIndex].oraclizeId ==0 || rounds[currentGameIndex].oraclizeId != _id) throw;
-       rounds[currentGameIndex].revealed = true;
-       revealedDate = now;
-       rounds[currentGameIndex].hitNumber = parseInt(_result,10);
-       OnHitNumberGenerated(rounds[currentGameIndex].hitNumber);
-    }
-
-    function checkBalance() returns(uint balance){
-        balance = pendingWithdrawals[msg.sender];
-    }
-
-    // withdraw the pending amount
-    function withdraw() returns(bool){
-        uint amount = pendingWithdrawals[msg.sender];
-        pendingWithdrawals[msg.sender] = 0;
-        if(msg.sender.send(amount)){
-            return true;
-        }else{
-            pendingWithdrawals[msg.sender] = amount;
-            return false;
-        }
-    }
+       if (drawn) throw;
+       if (oraclizeId ==0 || oraclizeId != _id) throw;
+       drawn = true;
+       actualDrawDate = now;
+       winningNumber = parseInt(_result,10);
+       Log_WinningNumberSelected(winningNumber);
+    } 
 }
