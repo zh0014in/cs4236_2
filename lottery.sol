@@ -306,6 +306,7 @@ contract lottery is usingOraclize{
     modifier onlyOwner() { if (owner != msg.sender) { throw; } _; }
     
     // events
+    event OnGameStart(uint round);
     event OnGameEnd(uint hitNumber);
     event OnHitNumberGenerated(uint hitNumber);
 
@@ -328,6 +329,7 @@ contract lottery is usingOraclize{
         }else{
             rounds[currentGameIndex].prize = 0;
         }
+        OnGameStart(currentGameIndex);
     }
     
     // owner call this to end a round and send prize to winner
@@ -353,6 +355,7 @@ contract lottery is usingOraclize{
         
         // owner has the commision
         pendingWithdrawals[owner] += commission;
+        OnGameEnd(rounds[currentGameIndex].hitNumber);
     }
     
     function buyTicket(uint number)
