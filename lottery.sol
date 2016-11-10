@@ -287,7 +287,9 @@ contract lottery is usingOraclize{
     
     struct ticket{
         uint guess;
+        bytes32 hashValue;
         address playerAddress;
+        bool valid; // indicate if this ticket is valid
     }
     
     struct round {
@@ -304,6 +306,7 @@ contract lottery is usingOraclize{
     
     // modifiers
     modifier onlyOwner() { if (owner != msg.sender) { throw; } _; }
+    modifier noEther() { if (msg.value > 0) { throw; } _; }
     
     // events
     event OnGameStart(uint round);
@@ -337,7 +340,8 @@ contract lottery is usingOraclize{
         if(!rounds[currentGameIndex].revealed) throw;
         address[] winners;
         for(uint i = 0; i < rounds[currentGameIndex].ticketsCount; i++){
-            if(rounds[currentGameIndex].tickets[i].guess == rounds[currentGameIndex].hitNumber){
+            if(rounds[currentGameIndex].tickets[i].valid == true &&
+                rounds[currentGameIndex].tickets[i].guess == rounds[currentGameIndex].hitNumber){
                 winners.push(rounds[currentGameIndex].tickets[i].playerAddress);
             }
         }
@@ -358,25 +362,25 @@ contract lottery is usingOraclize{
         OnGameEnd(rounds[currentGameIndex].hitNumber);
     }
     
-    function buyTicket(uint number)
+    function buyTicket(bytes32 hash)
     payable
     {
-        if(number > maxNumber){
-            throw;
-        }
-        if(number <= 0){
-            throw;
-        }
         uint value = msg.value;
         if(value < ticketPrice){
             throw;
+        }
+        for(uint i = 0; i < rounds[currentGameIndex].ticketsCount; i++){
+            if(rounds[currentGameIndex].tickets[i].playerAddress == msg.sender){
+                // the player has bought a ticket
+                throw;
+            }
         }
         if(value > ticketPrice){
             // mark exceeding value as withdraw
             pendingWithdrawals[msg.sender] += value - ticketPrice;
         }
         rounds[currentGameIndex].prize += value;
-        rounds[currentGameIndex].tickets[rounds[currentGameIndex].ticketsCount] = ticket(number, msg.sender);
+        rounds[currentGameIndex].tickets[rounds[currentGameIndex].ticketsCount] = ticket(0, hash, msg.sender, false);
         rounds[currentGameIndex].ticketsCount++;
     }
 
@@ -397,6 +401,27 @@ contract lottery is usingOraclize{
        rounds[currentGameIndex].hitNumber = parseInt(_result,10);
        OnHitNumberGenerated(rounds[currentGameIndex].hitNumber);
     }
+    
+    // player call to verify their numbers
+    function verifyNumber(uint number) noEther {
+    for(uint i = 0; i < rounds[currentGameIndex].ticketsCount; i++){
+            if(rounds[currentGameIndex].tickets[i].playerAddress == msg.sender){
+                if(number > maxNumber){
+                    rounds[currentGameIndex].tickets[i].valid = false;
+                }
+                if(number <= 0){
+                    rounds[currentGameIndex].tickets[i].valid = false;
+                }
+                var toHash = uint(msg.sender) + number;
+                if(rounds[currentGameIndex].tickets[i].hashValue == sha3(toHash)){
+                    rounds[currentGameIndex].tickets[i].valid = true;
+                    rounds[currentGameIndex].tickets[i].guess = number;
+                }else{
+                    rounds[currentGameIndex].tickets[i].valid = false;
+                }
+            }
+        }
+}
 
     function checkBalance() returns(uint balance){
         balance = pendingWithdrawals[msg.sender];
@@ -412,5 +437,17 @@ contract lottery is usingOraclize{
             pendingWithdrawals[msg.sender] = amount;
             return false;
         }
+    }
+    
+    // functions not modifying the state of contract
+    function generateHash(uint number) constant returns(bytes32 result){
+        if(number > maxNumber){
+            throw;
+        }
+        if(number <= 0){
+            throw;
+        }
+        var toHash = uint(msg.sender) + number;
+        return sha3(toHash);
     }
 }
