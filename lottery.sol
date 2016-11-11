@@ -312,6 +312,7 @@ contract lottery is usingOraclize{
     event OnGameStart(uint round);
     event OnGameEnd(uint hitNumber);
     event OnHitNumberGenerated(uint hitNumber);
+    event OnTicketBought(uint count);
 
     // constructor
     function lottery(){
@@ -382,6 +383,7 @@ contract lottery is usingOraclize{
         rounds[currentGameIndex].prize += value;
         rounds[currentGameIndex].tickets[rounds[currentGameIndex].ticketsCount] = ticket(0, hash, msg.sender, false);
         rounds[currentGameIndex].ticketsCount++;
+        OnTicketBought(rounds[currentGameIndex].ticketsCount);
     }
 
     function reveal()
