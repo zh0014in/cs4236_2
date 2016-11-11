@@ -25,5 +25,5 @@ src = newlines.join(" ").trim();
 template = template.replace(/\$SRC/, src);
 
 // write file
-fs.writeFileSync("draw.js", template, "utf8");
+fs.writeFileSync("lottery.js", template, "utf8");
 

@@ -1,16 +1,16 @@
-var src="$SRC";
+var src='$SRC';
 
 
 var srcCompiled = web3.eth.compile.solidity(src);
 
-var drawContract = web3.eth.contract(srcCompiled.lottery.info.abiDefinition);
+var lotteryContract = web3.eth.contract(srcCompiled.lottery.info.abiDefinition);
 
 //var theminer = eth.accounts[0];
 //var thebuyer = eth.accounts[1];
 //var anotherbuyer = eth.accounts[2];
 //var theorganiser = eth.accounts[3];
 
-var draw = drawContract.new(
+var lottery = lotteryContract.new(
   {
     from: web3.eth.accounts[0],
     data: srcCompiled.lottery.code, 
