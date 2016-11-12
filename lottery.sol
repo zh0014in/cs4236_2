@@ -20,6 +20,7 @@ contract lottery{
         uint hitNumber;
         bool revealed;
         uint prize;
+        bool soldOut;
     }
     //round[] public rounds;
     mapping(uint => round) public rounds;
@@ -28,8 +29,10 @@ contract lottery{
     // events
     event OnGameStart(uint round);
     event OnGameEnd(uint hitNumber);
+    event OnVerified(uint number);
     event OnHitNumberGenerated(uint hitNumber);
     event OnTicketBought(uint count);
+    event OnSoldout(uint round);
     event OnException(string message);
 
     // modifiers
@@ -45,9 +48,9 @@ contract lottery{
     function newRound() onlyOwner{
         if(currentRoundIndex >= 1){
             // start from the second round, tranfser previous round's prize to current round if any
-            rounds[currentRoundIndex] = round(0,0,false,rounds[currentRoundIndex-1].prize);
+            rounds[currentRoundIndex] = round(0,0,false,rounds[currentRoundIndex-1].prize,false);
         }else{
-            rounds[currentRoundIndex] = round(0,0,false,0);
+            rounds[currentRoundIndex] = round(0,0,false,0,false);
         }
         OnGameStart(currentRoundIndex);
         currentRoundIndex++;
@@ -57,13 +60,13 @@ contract lottery{
     // and calculate commission to himself
     function endRound() onlyOwner{
         if(!rounds[currentRoundIndex].revealed) throw;
-        address[] winners;
-        bool hasWinner = false;
+        mapping(uint => address) winners;
+        uint winnerCount = 0;
         for(uint i = 0; i < rounds[currentRoundIndex].ticketsCount; i++){
             if(rounds[currentRoundIndex].tickets[i].valid == true &&
                 rounds[currentRoundIndex].tickets[i].guess == rounds[currentRoundIndex].hitNumber){
-                winners.push(rounds[currentRoundIndex].tickets[i].playerAddress);
-                hasWinner = true;
+                winners[winnerCount] =  rounds[currentRoundIndex].tickets[i].playerAddress;
+                winnerCount++;
             }
         }
         // %10 of the pot goes to owner
@@ -71,9 +74,9 @@ contract lottery{
         // rest is the prize
         rounds[currentRoundIndex].prize = rounds[currentRoundIndex].ticketsCount * ticketPrice - commission;
         
-        if(hasWinner){
-            var share = rounds[currentRoundIndex].prize / winners.length;
-            for(i = 0; i < winners.length; i++){
+        if(winnerCount > 0){
+            var share = rounds[currentRoundIndex].prize / winnerCount;
+            for(i = 0; i < winnerCount; i++){
                 pendingWithdrawals[winners[i]] += share;
             }
         }
@@ -82,10 +85,18 @@ contract lottery{
         pendingWithdrawals[owner] += commission;
         OnGameEnd(rounds[currentRoundIndex].hitNumber);
     }
+
+    function soldOut() onlyOwner{
+        rounds[currentRoundIndex].soldOut = true;
+        OnSoldout(currentRoundIndex);
+    }
     
     function buyTicket(bytes32 hash)
     payable
     {
+        if(rounds[currentRoundIndex].soldOut){
+            throw;
+        }
         uint value = msg.value;
         if(value < ticketPrice){
             throw;
@@ -127,13 +138,17 @@ contract lottery{
             if(rounds[currentRoundIndex].tickets[i].hashValue == thisHash){
                 if(number > maxNumber){
                     rounds[currentRoundIndex].tickets[i].valid = false;
+                    return;
                 }
                 if(number <= 0){
                     rounds[currentRoundIndex].tickets[i].valid = false;
+                    return;
                 }
                 rounds[currentRoundIndex].tickets[i].guess = number;
                 rounds[currentRoundIndex].tickets[i].playerAddress = msg.sender;
                 rounds[currentRoundIndex].tickets[i].valid = true;
+                OnVerified(number);
+                return;
             }
         }
     }
