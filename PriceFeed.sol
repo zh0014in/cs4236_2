@@ -278,23 +278,28 @@ contract usingOraclize {
 // </ORACLIZE_API>
 
 contract PriceFeed is usingOraclize {
-  uint public ETHUSD;
+  //uint public ETHUSD;
+    bytes32 public oraclizeId;
+    event Log(string result);
     
   function PriceFeed(){
-    oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS);
+    //oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS);
     update(0); // first check at contract creation
   }
     
   function __callback(bytes32 myid, string result, bytes proof) {
-    if (msg.sender != oraclize_cbAddress()) throw;
-    ETHUSD = parseInt(result, 2); // save it as $ cents
+    //if (msg.sender != oraclize_cbAddress()) throw;
+    //ETHUSD = parseInt(result, 2); // save it as $ cents
     // do something with ETHUSD
     //update(60); //recursive update disabled
+    if (oraclizeId ==0 || oraclizeId != myid) throw;
+    Log(result);
   }
   
   function update(uint delay){
     // call oraclize and retrieve the latest USD/ETH price from Poloniex APIs
-    oraclize_query(delay, "URL",
-      "json(https://poloniex.com/public?command=returnTicker).USDT_ETH.last");
+    //oraclize_query(delay, "URL",
+      //"json(https://poloniex.com/public?command=returnTicker).USDT_ETH.last");
+      oraclizeId = oraclize_query("WolframAlpha", "random number between 1 and 1000");
   }
 }
