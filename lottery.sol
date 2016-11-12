@@ -299,7 +299,8 @@ contract lottery is usingOraclize{
         bytes32 oraclizeId;
         uint prize;
     }
-    round[] public rounds;
+    //round[] public rounds;
+    mapping(uint => round) public rounds;
     
     mapping(address => uint) pendingWithdrawals;
     
@@ -324,12 +325,12 @@ contract lottery is usingOraclize{
         
         if(currentGameIndex >= 1){
             // start from the second round, tranfser previous round's prize to current round if any
-            rounds.push(round(0,0,false,0,rounds[currentGameIndex-1].prize));
+            rounds[currentGameIndex] = round(0,0,false,0,rounds[currentGameIndex-1].prize);
         }else{
-            rounds.push(round(0,0,false,0,0));
+            rounds[currentGameIndex] = round(0,0,false,0,0);
         }
         OnGameStart(currentGameIndex);
-        currentGameIndex = rounds.length - 1;
+        currentGameIndex++;
     }
     
     // owner call this to end a round and send prize to winner
