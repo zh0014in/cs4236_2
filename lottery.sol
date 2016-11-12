@@ -279,7 +279,7 @@ contract usingOraclize {
 
 contract lottery is usingOraclize{
     address private owner;
-    uint public constant ticketPrice = 100 finney;
+    uint public constant ticketPrice = 100 ether;
     uint public constant maxNumber = 50;
     uint public revealedDate;
     uint public currentGameIndex = 0;
@@ -321,8 +321,6 @@ contract lottery is usingOraclize{
     
     // owner call this function to start a new round
     function newRound() onlyOwner{
-        
-        
         if(currentGameIndex >= 1){
             // start from the second round, tranfser previous round's prize to current round if any
             rounds[currentGameIndex] = round(0,0,false,0,rounds[currentGameIndex-1].prize);
