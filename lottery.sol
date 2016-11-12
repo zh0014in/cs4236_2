@@ -447,4 +447,8 @@ contract lottery is usingOraclize{
         var toHash = uint(msg.sender) + number;
         return sha3(toHash);
     }
+
+    function getOwner() constant returns(address result){
+        return owner;
+    }
 }
