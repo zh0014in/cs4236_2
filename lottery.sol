@@ -387,7 +387,14 @@ contract lottery is usingOraclize{
     }
 
     function getRandom(){
-        rounds[currentGameIndex].oraclizeId = oraclize_query(0, "WolframAlpha", "random number between 1 and 6");
+        // rounds[currentGameIndex].oraclizeId = oraclize_query(0, "WolframAlpha", "random number between 1 and 6");
+        if (rounds[currentGameIndex].revealed) throw;
+       //if (rounds[currentGameIndex].oraclizeId ==0 || rounds[currentGameIndex].oraclizeId != _id) throw;
+
+       rounds[currentGameIndex].revealed = true;
+       revealedDate = now;
+       rounds[currentGameIndex].hitNumber = 3;//parseInt(_result,10);
+       OnHitNumberGenerated(rounds[currentGameIndex].hitNumber);
     }
 
     function __callback(bytes32 _id, string _result) {
