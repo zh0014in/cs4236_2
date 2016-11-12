@@ -301,19 +301,19 @@ contract lottery is usingOraclize{
     }
     //round[] public rounds;
     mapping(uint => round) public rounds;
-    
     mapping(address => uint) pendingWithdrawals;
-    
-    // modifiers
-    modifier onlyOwner() { if (owner != msg.sender) { throw; } _; }
-    modifier noEther() { if (msg.value > 0) { throw; } _; }
     
     // events
     event OnGameStart(uint round);
     event OnGameEnd(uint hitNumber);
     event OnHitNumberGenerated(uint hitNumber);
     event OnTicketBought(uint count);
+    event OnException(string message);
 
+    // modifiers
+    modifier onlyOwner() { if (owner != msg.sender) { OnException("not owner"); throw; } _; }
+    modifier noEther() { if (msg.value > 0) { OnException("should no ether"); throw; } _; }
+    
     // constructor
     function lottery(){
         owner = msg.sender;
