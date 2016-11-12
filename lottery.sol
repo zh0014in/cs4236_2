@@ -453,7 +453,7 @@ contract lottery is usingOraclize{
         return owner;
     }
 
-    function getCurrentRound constant returns(uint round){
+    function getCurrentRound() constant returns(uint round){
         return currentGameIndex;
     }
 }
