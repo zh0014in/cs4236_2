@@ -1,9 +1,4 @@
-var src='$SRC';
-
-
-var srcCompiled = web3.eth.compile.solidity(src);
-
-var lotteryContract = web3.eth.contract(srcCompiled.lottery.info.abiDefinition);
+var lotteryContract = web3.eth.contract($ABI);
 
 //var theminer = eth.accounts[0];
 //var thebuyer = eth.accounts[1];
@@ -13,7 +8,7 @@ var lotteryContract = web3.eth.contract(srcCompiled.lottery.info.abiDefinition);
 var lottery = lotteryContract.new(
   {
     from: web3.eth.accounts[0],
-    data: srcCompiled.lottery.code, 
+    data: "$BIN",
     gas: 3000000
   }, function(e, contract){
        if(!e) { if(!contract.address) {
@@ -21,7 +16,7 @@ var lottery = lotteryContract.new(
        } else {
          console.log("Contract mined! Address: " + contract.address);
          console.log(contract);
-       } 
+       }
      }
 });
 

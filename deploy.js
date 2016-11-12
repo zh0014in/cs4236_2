@@ -10,20 +10,19 @@ var fs = require('fs');
 var templatefile = "./template.js";
 var template = fs.readFileSync(templatefile, "utf8");
 
-// load Solidity source and strip it
-var src = fs.readFileSync(argv[0], "utf8");
-lines = src.split("\n");
-var newlines = [];
-for(var i in lines) {
-  if(!lines[i].match(/ *\/\//)) {
-    newlines.push(lines[i]);
+var exec = require('child_process').exec;
+var cmd = 'solc --bin --abi -o ./bin lottery.sol';
+exec(cmd, function(error, stdout, stderr) {
+  // command output is in stdout
+  if (!error) {
+    var abi = fs.readFileSync("./bin/lottery.abi", "utf8");
+    var bin = fs.readFileSync("./bin/lottery.bin", "utf8");
+    template = template.replace(/\$ABI/, abi);
+    template = template.replace(/\$BIN/, bin);
+    fs.writeFileSync("lottery.js", template, "utf8");
+  } else {
+    console.error("Solc compilation error!");
+    process.exit(1)
   }
-}
-src = newlines.join(" ").trim();
-
-// swap $SRC for the source code
-template = template.replace(/\$SRC/, src);
-
-// write file
-fs.writeFileSync("lottery.js", template, "utf8");
+});
 
