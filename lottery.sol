@@ -106,12 +106,13 @@ contract lottery{
 
     function reveal()
     {
-        uint result = 0;
+        uint result = 1;
         for(uint i = 0; i < rounds[currentRoundIndex].ticketsCount; i++){
             if(rounds[currentRoundIndex].tickets[i].valid){
                 result = result ^ rounds[currentRoundIndex].tickets[i].guess;
             }
         }
+        result = result%4;
        rounds[currentRoundIndex].revealed = true;
        rounds[currentRoundIndex].hitNumber = result;
        OnHitNumberGenerated(rounds[currentRoundIndex].hitNumber);
