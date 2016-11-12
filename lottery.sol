@@ -420,8 +420,9 @@ contract lottery is usingOraclize{
         }
 }
 
-    function checkBalance() returns(uint balance){
+    function checkBalance() constant returns(uint balance){
         balance = pendingWithdrawals[msg.sender];
+        return balance;
     }
 
     // withdraw the pending amount
