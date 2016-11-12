@@ -463,4 +463,12 @@ contract lottery is usingOraclize{
     function getCurrentRound() constant returns(uint round){
         return currentGameIndex;
     }
+
+    function checkTicket() constant returns(uint number) {
+        for(uint i = 0; i < rounds[currentGameIndex].ticketsCount; i++){
+            if(rounds[currentGameIndex].tickets[i].playerAddress == msg.sender){
+                return rounds[currentGameIndex].tickets[i].guess;
+            }
+        }
+    }
 }
