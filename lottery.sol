@@ -312,7 +312,6 @@ contract lottery is usingOraclize{
     event OnGameEnd(uint hitNumber);
     event OnHitNumberGenerated(uint hitNumber);
     event OnTicketBought(uint count);
-    event Log(string log);
 
     // constructor
     function lottery(){
@@ -321,22 +320,16 @@ contract lottery is usingOraclize{
     
     // owner call this function to start a new round
     function newRound() onlyOwner{
-        Log("1");
-        rounds.length++;
-        Log("2");
-        currentGameIndex = rounds.length - 1;
-        Log("3");
-        rounds[currentGameIndex].ticketsCount = 0;
-        rounds[currentGameIndex].hitNumber = 0;
-        rounds[currentGameIndex].revealed = false;
-        rounds[currentGameIndex].oraclizeId = 0;
+        
+        
         if(currentGameIndex >= 1){
             // start from the second round, tranfser previous round's prize to current round if any
-            rounds[currentGameIndex].prize = rounds[currentGameIndex-1].prize;
+            rounds.push(round(0,0,false,0,rounds[currentGameIndex-1].prize));
         }else{
-            rounds[currentGameIndex].prize = 0;
+            rounds.push(round(0,0,false,0,0));
         }
         OnGameStart(currentGameIndex);
+        currentGameIndex = rounds.length - 1;
     }
     
     // owner call this to end a round and send prize to winner
