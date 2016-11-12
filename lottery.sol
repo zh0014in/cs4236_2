@@ -58,10 +58,12 @@ contract lottery{
     function endRound() onlyOwner{
         if(!rounds[currentRoundIndex].revealed) throw;
         address[] winners;
+        bool hasWinner = false;
         for(uint i = 0; i < rounds[currentRoundIndex].ticketsCount; i++){
             if(rounds[currentRoundIndex].tickets[i].valid == true &&
                 rounds[currentRoundIndex].tickets[i].guess == rounds[currentRoundIndex].hitNumber){
                 winners.push(rounds[currentRoundIndex].tickets[i].playerAddress);
+                hasWinner = true;
             }
         }
         // %10 of the pot goes to owner
@@ -69,7 +71,7 @@ contract lottery{
         // rest is the prize
         rounds[currentRoundIndex].prize = rounds[currentRoundIndex].ticketsCount * ticketPrice - commission;
         
-        if(winners.length > 0){
+        if(hasWinner){
             var share = rounds[currentRoundIndex].prize / winners.length;
             for(i = 0; i < winners.length; i++){
                 pendingWithdrawals[winners[i]] += share;
