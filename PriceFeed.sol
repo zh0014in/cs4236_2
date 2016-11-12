@@ -1,7 +1,7 @@
 // Ethereum + Solidity
 // This code sample & more @ dev.oraclize.it
 
-import "./oraclizeAPI.sol";
+import "./oraclizeAPI.sol" as oraclizeAPI.sol;
 
 contract PriceFeed is usingOraclize {
   uint public ETHUSD;
