@@ -29,6 +29,7 @@ exec(cmd, function(error, stdout, stderr) {
     fs.writeFileSync(rootName + "-abi.js", templateAbi, "utf8");
   } else {
     console.error("Solc compilation error!");
+    console.error(stderr);
     process.exit(1)
   }
 });
