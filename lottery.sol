@@ -279,7 +279,7 @@ contract usingOraclize {
 
 contract lottery is usingOraclize{
     address private owner;
-    uint public constant ticketPrice = 100 ether;
+    uint public constant ticketPrice = 100 wei;
     uint public constant maxNumber = 50;
     uint public revealedDate;
     uint public currentGameIndex = 0;
