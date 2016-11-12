@@ -1,0 +1,2 @@
+var abi = $ABI;
+
