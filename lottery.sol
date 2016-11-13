@@ -21,6 +21,7 @@ contract lottery{
         bool revealed;
         uint prize;
         bool soldOut;
+        uint beforeEnd;
     }
     //round[] public rounds;
     mapping(uint => round) public rounds;
@@ -31,7 +32,7 @@ contract lottery{
     event OnGameEnd(uint hitNumber);
     event OnVerified(uint number);
     event OnTicketBought(uint count);
-    event OnSoldout(uint round);
+    event OnSoldout(uint round, uint beforeEnd);
     event OnException(string message);
 
     // modifiers
@@ -47,9 +48,9 @@ contract lottery{
     function newRound() onlyOwner{
         if(currentRoundIndex >= 1){
             // start from the second round, tranfser previous round's prize to current round if any
-            rounds[currentRoundIndex] = round(0,0,false,rounds[currentRoundIndex-1].prize,false);
+            rounds[currentRoundIndex] = round(0,0,false,rounds[currentRoundIndex-1].prize,false, 0);
         }else{
-            rounds[currentRoundIndex] = round(0,0,false,0,false);
+            rounds[currentRoundIndex] = round(0,0,false,0,false,0);
         }
         OnGameStart(currentRoundIndex);
         currentRoundIndex++;
@@ -59,6 +60,7 @@ contract lottery{
     // and calculate commission to himself
     function endRound() onlyOwner{
         if(!rounds[currentRoundIndex].revealed) throw;
+        if(now < rounds[currentRoundIndex].beforeEnd) throw;
         mapping(uint => address) winners;
         uint winnerCount = 0;
         for(uint i = 0; i < rounds[currentRoundIndex].ticketsCount; i++){
@@ -85,9 +87,10 @@ contract lottery{
         OnGameEnd(rounds[currentRoundIndex].hitNumber);
     }
 
-    function soldOut() onlyOwner{
+    function soldOut(uint time) onlyOwner{
         rounds[currentRoundIndex].soldOut = true;
-        OnSoldout(currentRoundIndex);
+        rounds[currentRoundIndex].beforeEnd = now + time;
+        OnSoldout(currentRoundIndex, rounds[currentRoundIndex].beforeEnd);
     }
     
     function buyTicket(bytes32 hash)
