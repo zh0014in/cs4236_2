@@ -4,8 +4,9 @@ pragma solidity ^0.4.0;
 contract lottery{
     address private owner;
     uint public constant ticketPrice = 100 wei;
-    uint public constant maxNumber = 3;
+    uint public constant maxNumber = 3; // max number player could buy
     uint public currentRoundIndex = 0;
+    uint public timeBeforeEnd = 60; // time between sold out and game end
     
     struct ticket{
         uint guess; // 0 before player verify
@@ -56,8 +57,21 @@ contract lottery{
         currentRoundIndex++;
     }
     
-    // owner call this to end a round and send prize to winner
+    // owner call this to calculate the result, end a round and send prize to winner
     // and calculate commission to himself
+    function reveal() onlyOwner{
+        uint result = 0;
+        for(uint i = 0; i < rounds[currentRoundIndex].ticketsCount; i++){
+            if(rounds[currentRoundIndex].tickets[i].valid){
+                result = result ^ rounds[currentRoundIndex].tickets[i].guess;
+            }
+        }
+       result = result%3+1;
+       rounds[currentRoundIndex].revealed = true;
+       rounds[currentRoundIndex].hitNumber = result;
+       endRound();
+    }
+
     function endRound() onlyOwner{
         if(!rounds[currentRoundIndex].revealed) throw;
         if(now < rounds[currentRoundIndex].beforeEnd) throw;
@@ -87,9 +101,9 @@ contract lottery{
         OnGameEnd(rounds[currentRoundIndex].hitNumber);
     }
 
-    function soldOut(uint time) onlyOwner{
+    function soldOut() onlyOwner{
         rounds[currentRoundIndex].soldOut = true;
-        rounds[currentRoundIndex].beforeEnd = now + time;
+        rounds[currentRoundIndex].beforeEnd = now + timeBeforeEnd;
         OnSoldout(currentRoundIndex, rounds[currentRoundIndex].beforeEnd);
     }
     
@@ -113,19 +127,7 @@ contract lottery{
         OnTicketBought(rounds[currentRoundIndex].ticketsCount);
     }
 
-    function reveal()
-    {
-        uint result = 0;
-        for(uint i = 0; i < rounds[currentRoundIndex].ticketsCount; i++){
-            if(rounds[currentRoundIndex].tickets[i].valid){
-                result = result ^ rounds[currentRoundIndex].tickets[i].guess;
-            }
-        }
-       result = result%3+1;
-       rounds[currentRoundIndex].revealed = true;
-       rounds[currentRoundIndex].hitNumber = result;
-       endRound();
-    }
+    
     
     // player call to verify their numbers
     function verifyNumber(uint number, uint random) noEther {
