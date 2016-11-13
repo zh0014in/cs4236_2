@@ -1,0 +1,108 @@
+sudo apt-get install software-properties-common
+sudo add-apt-repository -y ppa:ethereum/ethereum
+sudo add-apt-repository -y ppa:ethereum/ethereum-dev
+sudo apt-get update
+sudo apt-get install ethereum
+
+
+{
+"nonce": "0x0000000000000042",
+"timestamp": "0x0",
+"parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000", "extraData": "0x0",
+"gasLimit": "0x8000000",
+"difficulty": "0x400",
+"mixhash": "0x0000000000000000000000000000000000000000000000000000000000000000", "coinbase": "0x3333333333333333333333333333333333333333",
+"alloc": {}
+}
+
+{
+"nonce": "0x0000000000000042",
+"timestamp": "0x0",
+"parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000", "extraData": "0x0",
+"gasLimit": "0x8000000",
+"difficulty": "0x400",
+"mixhash": "0x0000000000000000000000000000000000000000000000000000000000000000", "coinbase": "0x3333333333333333333333333333333333333333",
+"alloc": {
+"d7213d26c31218b8508018366f00ddb85e8049e4": { "balance": "20000000000000000000" }
+} }
+
+account1 address: d7213d26c31218b8508018366f00ddb85e8049e4
+account2 address: c009ce59507f1b5a6f6527a8b3b920c8b2845cca
+account3 address: 0cd07b5dc8f040b97454efcf4268ea185dc76342
+
+geth --datadir="./PrivateEtherData" -verbosity 6 --ipcdisable --port 30301 --rpcport 8101 --networkid "2387" init CustomGenesis.json
+geth --datadir="./PrivateEtherData" account new
+geth --datadir="./PrivateEtherData" -verbosity 6 --ipcdisable --port 30301 --rpcport 8101 --networkid "2387" init CustomGenesis2.json
+
+geth --datadir="./PrivateEtherData2" --verbosity 6 --ipcdisable --port 30302 --rpcport 8102 --networkid "2387" init CustomGenesis2.json
+geth --datadir="./PrivateEtherData2" account new
+
+geth --datadir="./PrivateEtherData3" -verbosity 6 --ipcdisable --port 30303 --rpcport 8103 --networkid "2387" init CustomGenesis2.json
+geth --datadir="./PrivateEtherData3" account new
+
+
+
+admin.nodeInfo.enode
+
+geth --datadir="./PrivateEtherData" -verbosity 6 --ipcdisable --port 30301 --rpcport 8101 --networkid "2387" --unlock d7213d26c31218b8508018366f00ddb85e8049e4 console 2>> ./PrivateEtherData/01.log
+
+geth --datadir="./PrivateEtherData2" --verbosity 6 --ipcdisable --port 30302 --rpcport 8102 --networkid "2387" --unlock c009ce59507f1b5a6f6527a8b3b920c8b2845cca console 2>> ./PrivateEtherData2/02.log
+
+geth --datadir="./PrivateEtherData3" --verbosity 6 --ipcdisable --port 30303 --rpcport 8103 --networkid "2387" --unlock 0cd07b5dc8f040b97454efcf4268ea185dc76342 console 2>> ./PrivateEtherData3/03.log
+
+
+admin.addPeer("enode://f0bd9c0851c84b3c6d2faa4773f5a455cceead58c5c93b29ff3867074e45872b85f7d84d943be802ad37c563f8756026e690d9d24aa66de1ec57591b9cbd60e7@127.0.0.1:30301")
+
+admin.addPeer("enode://b9c32af757a1de74d6579b07f9beaa82a9e192a5beb63e05edb8775d2ca08d3c53419b2166cb707200f0c1b518004f0990d037532b85eae62f7bdb3140b6090b@127.0.0.1:30302")
+
+admin.addPeer("enode://7e7bbabf8b9d9cf7c826e6b7139213c230d43d2ac31793eceea3ab3b9047d44b0456a8ef9795d0881487aa3baa8b598b5fa0263bd5d73a15d9cbf0174405a2b1@127.0.0.1:30303")
+
+// to check the etherbase account balance:
+web3.fromWei(eth.getBalance(eth.coinbase), "ether")
+
+// ether transfer
+eth.sendTransaction({from: '0xb8dd417b9035d22019dc9d978cf104f115cf3a3d', to: '0x8bfcfeb7c089cc2a6fcb91b69af4b6e641b02ae0', value: web3.toWei(1, "ether")})
+
+// check balance of eherbase account
+> eth.getBalance(eth.coinbase).toNumber();
+
+// unlock account
+personal.unlockAccount(eth.coinbase)
+
+// contract example
+> source = "contract test { function multiply(uint a) returns(uint d) { return a * 7; } }"
+> contract = eth.compile.solidity(source).test
+MyContract = eth.contract(contract.info.abiDefinition)
+primaryAddress = eth.accounts[0]
+MyContract.new({from: primaryAddress, data: contract.code});
+
+// check pending transactions
+eth.getBlock("pending", true).transactions
+
+
+
+loadScript('./lottery.js');
+var event = lottery.OnGameStart();
+event.watch(function(e,r){console.log('game start: ' + r.args.round);})
+lottery.newRound({from: eth.accounts[0], gas: 400000});
+
+var soldOutEvent = lottery.OnSoldout();
+soldOutEvent.watch(function(e,r){console.log('tickets sold out: ' + r.args.round);});
+
+var ticketBought = lottery.OnTicketBought();
+ticketBought.watch(function(e,r){console.log('ticket bought: ' + r.args.count);});
+
+var hash = lottery.generateHash(3,45);
+lottery.buyTicket(hash, {from: eth.accounts[0], value: 100, gas: 400000});
+
+lottery.soldOut({from: eth.accounts[0], gas: 400000});
+
+var verifyEvent = lottery.OnVerified();
+verifyEvent.watch(function(e,r){console.log('ticket verified: ' + r.args.number);});
+lottery.verifyNumber(3,45,{from: eth.accounts[0], gas: 400000});
+
+var gameEndEvent = lottery.OnGameEnd();
+gameEndEvent.watch(function(e,r){console.log('game ended: ' + r.args.hitNumber);});
+lottery.reveal({from: eth.accounts[0], gas: 400000});
+
+var lottery = eth.contract(abi).at("0x9a1f9ed6550688aee010f11a574aaea15eaf802d");

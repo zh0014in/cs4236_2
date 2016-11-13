@@ -30,7 +30,6 @@ contract lottery{
     event OnGameStart(uint round);
     event OnGameEnd(uint hitNumber);
     event OnVerified(uint number);
-    event OnHitNumberGenerated(uint hitNumber);
     event OnTicketBought(uint count);
     event OnSoldout(uint round);
     event OnException(string message);
@@ -101,12 +100,6 @@ contract lottery{
         if(value < ticketPrice){
             throw;
         }
-        for(uint i = 0; i < rounds[currentRoundIndex].ticketsCount; i++){
-            if(rounds[currentRoundIndex].tickets[i].hashValue == hash){
-                // the player has bought a ticket
-                throw;
-            }
-        }
         if(value > ticketPrice){
             // mark exceeding value as withdraw
             pendingWithdrawals[msg.sender] += value - ticketPrice;
@@ -119,21 +112,21 @@ contract lottery{
 
     function reveal()
     {
-        uint result = 1;
+        uint result = 0;
         for(uint i = 0; i < rounds[currentRoundIndex].ticketsCount; i++){
             if(rounds[currentRoundIndex].tickets[i].valid){
                 result = result ^ rounds[currentRoundIndex].tickets[i].guess;
             }
         }
-        result = result%4;
+       result = result%3+1;
        rounds[currentRoundIndex].revealed = true;
        rounds[currentRoundIndex].hitNumber = result;
-       OnHitNumberGenerated(rounds[currentRoundIndex].hitNumber);
+       endRound();
     }
     
     // player call to verify their numbers
-    function verifyNumber(uint number) noEther {
-        bytes32 thisHash = hash(msg.sender, number);
+    function verifyNumber(uint number, uint random) noEther {
+        bytes32 thisHash = sha3(msg.sender, number, random);
         for(uint i = 0; i < rounds[currentRoundIndex].ticketsCount; i++){
             if(rounds[currentRoundIndex].tickets[i].hashValue == thisHash){
                 if(number > maxNumber){
@@ -148,7 +141,6 @@ contract lottery{
                 rounds[currentRoundIndex].tickets[i].playerAddress = msg.sender;
                 rounds[currentRoundIndex].tickets[i].valid = true;
                 OnVerified(number);
-                return;
             }
         }
     }
@@ -171,19 +163,14 @@ contract lottery{
     }
     
     // functions not modifying the state of contract
-    function generateHash(uint number) constant returns(bytes32 result){
+    function generateHash(uint number, uint random) constant returns(bytes32 result){
         if(number > maxNumber){
             throw;
         }
         if(number <= 0){
             throw;
         }
-        return hash(msg.sender, number);
-    }
-    
-    function hash(address addr, uint number) constant returns(bytes32 result) {
-        var toHash = uint(msg.sender) + number;
-        return sha3(toHash);
+        return sha3(msg.sender, number, random);
     }
 
     function getOwner() constant returns(address result){
